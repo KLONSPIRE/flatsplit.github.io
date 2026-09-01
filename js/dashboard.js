@@ -1,4 +1,4 @@
-// Dashboard Logic & State Management
+// js/dashboard.js
 
 let currentDate = new Date();
 let currentMonth = currentDate.getMonth();
@@ -6,17 +6,13 @@ let currentYear = currentDate.getFullYear();
 let categoryChartInstance = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Auth Check
     const user = Utils.getCurrentUser();
     if (!user) {
         window.location.href = './index.html';
         return;
     }
 
-    // Initialize Theme
     Utils.initTheme();
-    
-    // Setup UI
     lucide.createIcons();
     setupGreeting(user);
     setupPaidByDropdown(user);
@@ -34,7 +30,6 @@ function setupPaidByDropdown(userId) {
     const select = document.getElementById('paid-by-select');
     const otherUser = userId === 'user1' ? 'user2' : 'user1';
     
-    // Default to current user, but allow selecting roommate
     select.innerHTML = `
         <option value="${userId}">${CONFIG.USERS[userId].name} (You)</option>
         <option value="${otherUser}">${CONFIG.USERS[otherUser].name}</option>
@@ -65,8 +60,6 @@ async function loadDashboard() {
     
     try {
         const data = await API.getDashboard(currentMonth, currentYear);
-        
-        // Cache data
         Utils.cacheData(`dashboard_${currentMonth}_${currentYear}`, data);
         
         renderStats(data);
@@ -84,31 +77,55 @@ async function loadDashboard() {
 function renderStats(data) {
     const user = Utils.getCurrentUser();
     const myPaid = user === 'user1' ? data.user1Paid : data.user2Paid;
-    const balanceOwed = data.owedTo === user ? data.balance : 0;
-    const balanceOwe = data.owedTo !== user && data.balance > 0 ? -data.balance : 0;
-    const settlement = balanceOwed > 0 ? balanceOwed : balanceOwe;
+    
+    // Trust the backend's final calculated balance (which includes settlements)
+    let mySettlement = 0;
+    if (data.owedTo === user) {
+        mySettlement = data.balance; // I am owed money
+    } else if (data.owedTo && data.owedTo !== user) {
+        mySettlement = -data.balance; // I owe money
+    }
 
     document.getElementById('stat-total').innerText = Utils.formatCurrency(data.totalShared);
     document.getElementById('stat-i-paid').innerText = Utils.formatCurrency(myPaid);
-    document.getElementById('stat-fair').innerText = Utils.formatCurrency(data.fairShare);
+    
+    // Show user their specific fair share
+    const myShare = user === 'user1' ? data.user1Share : data.user2Share;
+    document.getElementById('stat-fair').innerText = Utils.formatCurrency(myShare);
     
     const settleEl = document.getElementById('stat-settle');
-    settleEl.innerText = `${settlement > 0 ? '+' : ''}${Utils.formatCurrency(settlement)}`;
-    settleEl.style.color = settlement > 0 ? 'var(--success)' : settlement < 0 ? 'var(--danger)' : 'var(--text-primary)';
+    settleEl.innerText = `${mySettlement > 0 ? '+' : ''}${Utils.formatCurrency(mySettlement)}`;
+    settleEl.style.color = mySettlement > 0 ? 'var(--success)' : mySettlement < 0 ? 'var(--danger)' : 'var(--text-primary)';
 }
 
 function renderSplitView(data) {
     document.getElementById('split-section').classList.remove('hidden');
     
-    // User 1
+    // User 1 Display
     document.getElementById('split-p1-name').innerText = CONFIG.USERS.user1.name;
     document.getElementById('split-p1-paid').innerText = Utils.formatCurrency(data.user1Paid);
-    document.getElementById('split-p1-fair').innerText = Utils.formatCurrency(data.fairShare);
+    document.getElementById('split-p1-fair').innerText = Utils.formatCurrency(data.user1Share);
     
-    const p1Balance = data.user1Paid - data.fairShare;
+    // User 2 Display
+    document.getElementById('split-p2-name').innerText = CONFIG.USERS.user2.name;
+    document.getElementById('split-p2-paid').innerText = Utils.formatCurrency(data.user2Paid);
+    document.getElementById('split-p2-fair').innerText = Utils.formatCurrency(data.user2Share);
+
+    // Use backend balance logic (factoring in settlements) instead of raw math
+    let p1Balance = 0;
+    let p2Balance = 0;
+
+    if (data.owedTo === 'user1') {
+        p1Balance = data.balance;
+        p2Balance = -data.balance;
+    } else if (data.owedTo === 'user2') {
+        p1Balance = -data.balance;
+        p2Balance = data.balance;
+    }
+
+    // Render User 1 Status
     const p1Status = document.getElementById('split-p1-status');
     const p1Div = document.getElementById('split-p1');
-    
     p1Div.className = 'split-person ' + (p1Balance > 0 ? 'positive' : p1Balance < 0 ? 'negative' : '');
     p1Status.innerHTML = p1Balance > 0 ? 
         `<span class="text-green">+${Utils.formatCurrency(p1Balance)}</span> Excess Paid` : 
@@ -116,15 +133,9 @@ function renderSplitView(data) {
         `<span class="text-red">${Utils.formatCurrency(p1Balance)}</span> Less Paid` : 
         `Settled`;
 
-    // User 2
-    document.getElementById('split-p2-name').innerText = CONFIG.USERS.user2.name;
-    document.getElementById('split-p2-paid').innerText = Utils.formatCurrency(data.user2Paid);
-    document.getElementById('split-p2-fair').innerText = Utils.formatCurrency(data.fairShare);
-    
-    const p2Balance = data.user2Paid - data.fairShare;
+    // Render User 2 Status
     const p2Status = document.getElementById('split-p2-status');
     const p2Div = document.getElementById('split-p2');
-    
     p2Div.className = 'split-person ' + (p2Balance > 0 ? 'positive' : p2Balance < 0 ? 'negative' : '');
     p2Status.innerHTML = p2Balance > 0 ? 
         `<span class="text-green">+${Utils.formatCurrency(p2Balance)}</span> Excess Paid` : 
@@ -146,7 +157,6 @@ function renderChart(expenses) {
     canvas.style.display = 'block';
     emptyMsg.style.display = 'none';
 
-    // Aggregate by category
     const catData = {};
     expenses.forEach(e => {
         catData[e.category] = (catData[e.category] || 0) + e.amount;
@@ -166,9 +176,7 @@ function renderChart(expenses) {
         },
         options: {
             responsive: true,
-            plugins: {
-                legend: { position: 'bottom' }
-            }
+            plugins: { legend: { position: 'bottom' } }
         }
     });
 }
@@ -182,7 +190,6 @@ function renderRecentActivity(expenses) {
         return;
     }
 
-    // Sort by date descending (assume array comes back sorted, but good to ensure)
     const sorted = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
 
     container.innerHTML = sorted.map(e => `
@@ -206,8 +213,7 @@ function toggleCustomSplit() {
 async function handleAddShared(e) {
     e.preventDefault();
     const btn = document.getElementById('btn-submit-shared');
-    btn.disabled = true;
-    btn.innerText = 'Saving...';
+    btn.disabled = true; btn.innerText = 'Saving...';
     
     const form = e.target;
     const payload = {
@@ -230,12 +236,11 @@ async function handleAddShared(e) {
         closeModal('shared-modal');
         form.reset();
         setDefaultDates();
-        loadDashboard(); // Refresh
+        loadDashboard(); 
     } catch (err) {
         Utils.showToast(err.message, 'error');
     } finally {
-        btn.disabled = false;
-        btn.innerText = 'Add Expense';
+        btn.disabled = false; btn.innerText = 'Add Expense';
     }
 }
 
@@ -243,7 +248,7 @@ async function handleAddPersonal(e) {
     e.preventDefault();
     const form = e.target;
     const payload = {
-        user_id: Utils.getCurrentUser(), // Enforce privacy
+        user_id: Utils.getCurrentUser(), 
         description: form.description.value,
         amount: parseFloat(form.amount.value),
         category: form.category.value,
@@ -264,9 +269,7 @@ async function handleAddPersonal(e) {
 // --- Settlement ---
 
 function openSettleModal() {
-    // We need to know the current balance to populate the modal text
-    // Fetching it again briefly or reading from DOM state. 
-    // Reading from DOM is faster for UX:
+    // Read the exact text from the stat card we just calculated
     const statSettle = document.getElementById('stat-settle').innerText;
     const amount = parseFloat(statSettle.replace(/[^0-9.-]+/g, ''));
     
@@ -279,20 +282,14 @@ function openSettleModal() {
     const otherUser = user === 'user1' ? 'user2' : 'user1';
     
     if (amount < 0) {
-        // Current user owes
         document.getElementById('settle-text').innerText = `You will pay ${CONFIG.USERS[otherUser].name}`;
         document.getElementById('settle-amount').innerText = Utils.formatCurrency(Math.abs(amount));
         document.getElementById('settle-amount').style.color = 'var(--danger)';
-        
-        // Store data for confirmation
         window._pendingSettlement = { from: user, to: otherUser, amount: Math.abs(amount) };
     } else {
-        // Current user is owed
         document.getElementById('settle-text').innerText = `${CONFIG.USERS[otherUser].name} will pay you`;
         document.getElementById('settle-amount').innerText = Utils.formatCurrency(amount);
         document.getElementById('settle-amount').style.color = 'var(--success)';
-        
-        // Logically, the other person pays me
         window._pendingSettlement = { from: otherUser, to: user, amount: amount };
     }
 
@@ -309,7 +306,7 @@ async function confirmSettlement() {
         });
         Utils.showToast('Settlement recorded!');
         closeModal('settle-modal');
-        loadDashboard(); // Refresh balances
+        loadDashboard(); 
     } catch (err) {
         Utils.showToast(err.message, 'error');
     }
@@ -317,25 +314,15 @@ async function confirmSettlement() {
 
 // --- UI Helpers ---
 
-function openModal(id) {
-    document.getElementById(id).classList.add('active');
-}
-function closeModal(id) {
-    document.getElementById(id).classList.remove('active');
-}
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function showLoading(show) {
     document.getElementById('loading-skeleton').style.display = show ? 'grid' : 'none';
     document.getElementById('stats-grid').style.display = show ? 'none' : 'grid';
 }
-function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-}
-function logout() {
-    localStorage.removeItem('flatsplit_user');
-    window.location.href = './index.html';
-}
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+function logout() { localStorage.removeItem('flatsplit_user'); window.location.href = './index.html'; }
 
-// Close modals on overlay click
 window.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal-overlay')) {
         e.target.classList.remove('active');
