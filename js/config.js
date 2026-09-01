@@ -1,3 +1,4 @@
+
 const CONFIG = {
     // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
     GOOGLE_APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwwXmNj3eSmhsR8hgLhLCBx6gKNrZWWckt5GCiF3gvT7O5njXV3mjjT7NPx6-2jKx6fOw/exec",
