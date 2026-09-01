@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlatSplit - Settings</title>
+    <title>FlatSplit - Recurring</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/dashboard.css">
     <link rel="stylesheet" href="./css/responsive.css">
 </head>
 <body>
@@ -19,9 +20,9 @@
             <li class="nav-item"><a href="./personal-expenses.html" class="nav-link"><i data-lucide="wallet"></i> My Expenses</a></li>
             <li class="nav-item"><a href="./balance.html" class="nav-link"><i data-lucide="scale"></i> Balance</a></li>
             <li class="nav-item"><a href="./analytics.html" class="nav-link"><i data-lucide="bar-chart-3"></i> Analytics</a></li>
-            <li class="nav-item"><a href="./recurring.html" class="nav-link"><i data-lucide="repeat"></i> Recurring</a></li>
+            <li class="nav-item"><a href="./recurring.html" class="nav-link active"><i data-lucide="repeat"></i> Recurring</a></li>
             <li class="nav-item"><a href="./reports.html" class="nav-link"><i data-lucide="download"></i> Reports</a></li>
-            <li class="nav-item"><a href="./settings.html" class="nav-link active"><i data-lucide="settings"></i> Settings</a></li>
+            <li class="nav-item"><a href="./settings.html" class="nav-link"><i data-lucide="settings"></i> Settings</a></li>
         </ul>
         <div style="margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 16px;">
             <button onclick="logout()" class="nav-link" style="width:100%; background:none; border:none; color:var(--text-secondary); cursor:pointer; display:flex; align-items:center; gap:12px;"><i data-lucide="log-out"></i> Switch User</button>
@@ -34,63 +35,72 @@
             <button onclick="toggleSidebar()" style="background:none; border:none; font-size: 24px; cursor:pointer;">☰</button>
         </div>
 
-        <header class="header"><h1>Settings</h1></header>
+        <header class="header">
+            <h1>Recurring Expenses</h1>
+            <button class="btn btn-primary" onclick="openModal('recurring-modal')"><i data-lucide="plus-circle"></i> Add Recurring</button>
+        </header>
 
-        <div class="card" style="margin-bottom: 24px;">
-            <h3 style="margin-bottom: 16px;">Flat Details</h3>
-            <div class="grid grid-2">
-                <div class="form-group">
-                    <label class="form-label">Flat Name</label>
-                    <input type="text" class="form-input" id="set-flatname" placeholder="e.g. Apt 404">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Currency Symbol</label>
-                    <input type="text" class="form-input" id="set-currency" maxlength="3" placeholder="₹">
-                </div>
-            </div>
+        <div id="recurring-list">
+            <!-- Populated by JS -->
         </div>
-
-        <div class="card" style="margin-bottom: 24px;">
-            <h3 style="margin-bottom: 16px;">Roommates</h3>
-            <div class="grid grid-2">
-                <div class="form-group">
-                    <label class="form-label">Person 1 Name</label>
-                    <input type="text" class="form-input" id="set-user1" placeholder="John">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Person 2 Name</label>
-                    <input type="text" class="form-input" id="set-user2" placeholder="Jane">
-                </div>
-            </div>
-        </div>
-
-        <div class="card" style="margin-bottom: 24px;">
-            <h3 style="margin-bottom: 16px;">Appearance</h3>
-            <div class="form-group">
-                <label class="form-label">Theme</label>
-                <select class="form-input" id="set-theme" onchange="handleThemeChange(this.value)" style="max-width: 300px;">
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="card" style="margin-bottom: 24px;">
-            <h3 style="margin-bottom: 16px;">Data & Connection</h3>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
-                <div>
-                    <div style="font-weight: 600;">Google Sheets Status</div>
-                    <div style="font-size: 14px; color: var(--text-secondary);" id="sync-status">Checking...</div>
-                </div>
-                <button class="btn btn-outline btn-sm" onclick="testConnection()">Test Connection</button>
-            </div>
-            <button class="btn btn-danger" onclick="if(confirm('Clear all local app data?')) { localStorage.clear(); location.reload(); }">Clear Local Cache</button>
-        </div>
-
-        <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
     </main>
 
+    <!-- Add Recurring Modal -->
+    <div class="modal-overlay" id="recurring-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Add Recurring Expense</h2>
+                <button class="modal-close" onclick="closeModal('recurring-modal')">&times;</button>
+            </div>
+            <form onsubmit="handleAddRecurring(event)">
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-input" name="description" required placeholder="e.g. Rent, Netflix">
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Amount</label>
+                        <input type="number" step="0.01" class="form-input" name="amount" required placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Frequency</label>
+                        <select class="form-input" name="frequency" required>
+                            <option value="Monthly">Monthly</option>
+                            <option value="Weekly">Weekly</option>
+                            <option value="Yearly">Yearly</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select class="form-input" name="category" required>
+                        <option value="Rent">🏠 Rent</option>
+                        <option value="Electricity">⚡ Electricity</option>
+                        <option value="Wi-Fi">🌐 Wi-Fi</option>
+                        <option value="Subscriptions">📱 Subscriptions</option>
+                        <option value="Other">📦 Other</option>
+                    </select>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Paid By</label>
+                        <select class="form-input" name="paid_by" id="paid-by-select" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Next Date</label>
+                        <input type="date" class="form-input" name="next_date" required>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('recurring-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="toast-container"></div>
+    
     <script src="./js/config.js"></script>
     <script src="./js/utils.js"></script>
     <script src="./js/api.js"></script>
