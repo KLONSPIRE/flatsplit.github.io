@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlatSplit - Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+    <div class="login-container">
+        <h1>🏠 FlatSplit</h1>
+        <p>Split expenses. Stay balanced.</p>
+        
+        <div class="login-card">
+            <h2 style="margin-bottom: 24px; font-size: 20px;">Who are you?</h2>
+            
+            <button class="user-select-btn" onclick="selectUser('user1')">
+                👤 <span id="login-name-1">Person 1</span>
+            </button>
+            
+            <button class="user-select-btn" onclick="selectUser('user2')">
+                👤 <span id="login-name-2">Person 2</span>
+            </button>
+        </div>
+    </div>
+
+    <script src="./js/config.js"></script>
+    <script src="./js/utils.js"></script>
+    <script>
+        // Populate names from config
+        document.getElementById('login-name-1').innerText = CONFIG.USERS.user1.name;
+        document.getElementById('login-name-2').innerText = CONFIG.USERS.user2.name;
+
+        function selectUser(userId) {
+            Utils.setCurrentUser(userId);
+            // Redirect to dashboard
+            window.location.href = './dashboard.html';
+        }
+
+        // If already logged in, redirect
+        if (Utils.getCurrentUser()) {
+            window.location.href = './dashboard.html';
+        }
+    </script>
+</body>
+</html>
