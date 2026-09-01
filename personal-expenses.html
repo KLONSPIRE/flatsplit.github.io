@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlatSplit - Balance</title>
+    <title>FlatSplit - My Expenses</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="./css/style.css">
-    <link rel="stylesheet" href="./css/dashboard.css">
     <link rel="stylesheet" href="./css/responsive.css">
 </head>
 <body>
@@ -17,8 +16,8 @@
         <ul class="nav-menu">
             <li class="nav-item"><a href="./dashboard.html" class="nav-link"><i data-lucide="layout-dashboard"></i> Dashboard</a></li>
             <li class="nav-item"><a href="./shared-expenses.html" class="nav-link"><i data-lucide="receipt"></i> Shared Expenses</a></li>
-            <li class="nav-item"><a href="./personal-expenses.html" class="nav-link"><i data-lucide="wallet"></i> My Expenses</a></li>
-            <li class="nav-item"><a href="./balance.html" class="nav-link active"><i data-lucide="scale"></i> Balance</a></li>
+            <li class="nav-item"><a href="./personal-expenses.html" class="nav-link active"><i data-lucide="wallet"></i> My Expenses</a></li>
+            <li class="nav-item"><a href="./balance.html" class="nav-link"><i data-lucide="scale"></i> Balance</a></li>
             <li class="nav-item"><a href="./analytics.html" class="nav-link"><i data-lucide="bar-chart-3"></i> Analytics</a></li>
             <li class="nav-item"><a href="./recurring.html" class="nav-link"><i data-lucide="repeat"></i> Recurring</a></li>
             <li class="nav-item"><a href="./reports.html" class="nav-link"><i data-lucide="download"></i> Reports</a></li>
@@ -35,51 +34,75 @@
             <button onclick="toggleSidebar()" style="background:none; border:none; font-size: 24px; cursor:pointer;">☰</button>
         </div>
 
-        <header class="header"><h1>Current Balance</h1></header>
+        <header class="header">
+            <h1>My Personal Spending</h1>
+            <button class="btn btn-primary" onclick="openModal('personal-modal')"><i data-lucide="plus-circle"></i> Add Personal</button>
+        </header>
 
-        <!-- Central Balance Display -->
-        <div class="card" style="text-align: center; padding: 48px 24px; margin-bottom: 32px;">
-            <h2 style="color: var(--text-secondary); font-size: 16px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Settlement Required</h2>
-            <p id="balance-text" style="font-size: 20px; margin-bottom: 8px;">You owe Person 2</p>
-            <p id="balance-amount" style="font-size: 56px; font-weight: 800; color: var(--danger);">₹0.00</p>
-            <button class="btn btn-primary" style="margin-top: 32px; padding: 12px 32px; font-size: 16px;" onclick="openSettleModal()">Mark as Settled</button>
-        </div>
-
-        <!-- Detailed Breakdown -->
-        <div class="split-container" style="margin-bottom: 32px;">
+        <div class="grid grid-2" style="margin-bottom: 24px;">
             <div class="card">
-                <h3 id="det-p1-name">Person 1</h3>
-                <div style="margin-top: 16px; display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);"><span style="color:var(--text-secondary)">Paid</span><span id="det-p1-paid" style="font-weight:600">₹0</span></div>
-                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);"><span style="color:var(--text-secondary)">Fair Share</span><span id="det-p1-share" style="font-weight:600">₹0</span></div>
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;"><span style="color:var(--text-secondary)">Balance</span><span id="det-p1-bal" style="font-weight:700">₹0</span></div>
+                <div class="card-title">Total Spent This Month</div>
+                <div class="card-value" id="stat-total-personal">₹0.00</div>
             </div>
             <div class="card">
-                <h3 id="det-p2-name">Person 2</h3>
-                <div style="margin-top: 16px; display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);"><span style="color:var(--text-secondary)">Paid</span><span id="det-p2-paid" style="font-weight:600">₹0</span></div>
-                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);"><span style="color:var(--text-secondary)">Fair Share</span><span id="det-p2-share" style="font-weight:600">₹0</span></div>
-                <div style="display: flex; justify-content: space-between; padding: 8px 0;"><span style="color:var(--text-secondary)">Balance</span><span id="det-p2-bal" style="font-weight:700">₹0</span></div>
+                <div class="card-title">Transactions</div>
+                <div class="card-value" id="stat-count-personal">0</div>
             </div>
         </div>
 
-        <!-- Settlement History -->
-        <div class="card">
-            <h3 style="margin-bottom: 16px;">Settlement History</h3>
-            <div id="settlement-history">
-                <div style="text-align:center; color:var(--text-secondary); padding: 24px;">No settlements yet.</div>
+        <div class="card" style="padding: 0; overflow-x: auto;">
+            <table class="responsive-table" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
+                        <th style="padding: 16px;">Date</th>
+                        <th style="padding: 16px;">Description</th>
+                        <th style="padding: 16px;">Category</th>
+                        <th style="padding: 16px;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="personal-tbody"></tbody>
+            </table>
+            <div id="empty-state" class="empty-state-container" style="display: none;">
+                <div class="empty-state-icon">🔒</div>
+                <div class="empty-state-title">No personal expenses</div>
+                <p>Your private spending will appear here.</p>
             </div>
         </div>
     </main>
 
-    <!-- Settle Modal -->
-    <div class="modal-overlay" id="settle-modal">
-        <div class="modal" style="text-align: center;">
-            <h2 class="modal-title" style="margin-bottom: 24px;">Confirm Settlement</h2>
-            <p id="settle-text" style="font-size: 18px; margin-bottom: 8px;">You owe Person 2</p>
-            <p id="settle-amount" style="font-size: 36px; font-weight: 700; color: var(--primary); margin-bottom: 32px;">₹0.00</p>
-            <div style="display: flex; gap: 12px; justify-content: center;">
-                <button class="btn btn-outline" onclick="closeModal('settle-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="confirmSettlement()">Confirm Settlement</button>
+    <div class="modal-overlay" id="personal-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Add Personal Expense</h2>
+                <button class="modal-close" onclick="closeModal('personal-modal')">&times;</button>
             </div>
+            <form id="personal-form" onsubmit="handleAddPersonal(event)">
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-input" name="description" required placeholder="e.g. Evening Snacks">
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Amount</label>
+                        <input type="number" step="0.01" class="form-input" name="amount" required placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-input" name="date" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select class="form-input" name="category" required>
+                        <option value="Food">🍔 Food</option><option value="Transport">🚇 Transport</option>
+                        <option value="Shopping">🛍️ Shopping</option><option value="Entertainment">🎮 Entertainment</option><option value="Other">📦 Other</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('personal-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Expense</button>
+                </div>
+            </form>
         </div>
     </div>
 
