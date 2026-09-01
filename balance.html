@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlatSplit - Recurring</title>
+    <title>FlatSplit - Balance</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/dashboard.css">
     <link rel="stylesheet" href="./css/responsive.css">
 </head>
 <body>
@@ -17,9 +18,9 @@
             <li class="nav-item"><a href="./dashboard.html" class="nav-link"><i data-lucide="layout-dashboard"></i> Dashboard</a></li>
             <li class="nav-item"><a href="./shared-expenses.html" class="nav-link"><i data-lucide="receipt"></i> Shared Expenses</a></li>
             <li class="nav-item"><a href="./personal-expenses.html" class="nav-link"><i data-lucide="wallet"></i> My Expenses</a></li>
-            <li class="nav-item"><a href="./balance.html" class="nav-link"><i data-lucide="scale"></i> Balance</a></li>
+            <li class="nav-item"><a href="./balance.html" class="nav-link active"><i data-lucide="scale"></i> Balance</a></li>
             <li class="nav-item"><a href="./analytics.html" class="nav-link"><i data-lucide="bar-chart-3"></i> Analytics</a></li>
-            <li class="nav-item"><a href="./recurring.html" class="nav-link active"><i data-lucide="repeat"></i> Recurring</a></li>
+            <li class="nav-item"><a href="./recurring.html" class="nav-link"><i data-lucide="repeat"></i> Recurring</a></li>
             <li class="nav-item"><a href="./reports.html" class="nav-link"><i data-lucide="download"></i> Reports</a></li>
             <li class="nav-item"><a href="./settings.html" class="nav-link"><i data-lucide="settings"></i> Settings</a></li>
         </ul>
@@ -34,42 +35,47 @@
             <button onclick="toggleSidebar()" style="background:none; border:none; font-size: 24px; cursor:pointer;">☰</button>
         </div>
 
-        <header class="header">
-            <h1>Recurring Expenses</h1>
-            <button class="btn btn-primary" onclick="openModal('recurring-modal')"><i data-lucide="plus-circle"></i> Add Recurring</button>
-        </header>
+        <header class="header"><h1>Current Balance</h1></header>
 
-        <div id="recurring-list">
-            <!-- Populated by JS -->
+        <div class="card" style="text-align: center; padding: 48px 24px; margin-bottom: 32px;">
+            <h2 style="color: var(--text-secondary); font-size: 16px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Settlement Required</h2>
+            <p id="balance-text" style="font-size: 20px; margin-bottom: 8px;">Calculating...</p>
+            <p id="balance-amount" style="font-size: 56px; font-weight: 800; color: var(--text-secondary);">₹0.00</p>
+            <button class="btn btn-primary" style="margin-top: 32px; padding: 12px 32px; font-size: 16px; display: none;" id="settle-btn" onclick="openSettleModal()">Mark as Settled</button>
+        </div>
+
+        <div class="split-container" style="margin-bottom: 32px;">
+            <div class="card">
+                <h3 id="det-p1-name">Person 1</h3>
+                <div style="margin-top: 16px; display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);"><span style="color:var(--text-secondary)">Paid</span><span id="det-p1-paid" style="font-weight:600">₹0</span></div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);"><span style="color:var(--text-secondary)">Share</span><span id="det-p1-share" style="font-weight:600">₹0</span></div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0;"><span style="color:var(--text-secondary)">Balance</span><span id="det-p1-bal" style="font-weight:700">₹0</span></div>
+            </div>
+            <div class="card">
+                <h3 id="det-p2-name">Person 2</h3>
+                <div style="margin-top: 16px; display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);"><span style="color:var(--text-secondary)">Paid</span><span id="det-p2-paid" style="font-weight:600">₹0</span></div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);"><span style="color:var(--text-secondary)">Share</span><span id="det-p2-share" style="font-weight:600">₹0</span></div>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0;"><span style="color:var(--text-secondary)">Balance</span><span id="det-p2-bal" style="font-weight:700">₹0</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-bottom: 16px;">Settlement History</h3>
+            <div id="settlement-history">
+                <div style="text-align:center; color:var(--text-secondary); padding: 24px;">No settlements yet.</div>
+            </div>
         </div>
     </main>
 
-    <div class="modal-overlay" id="recurring-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 class="modal-title">Add Recurring Expense</h2>
-                <button class="modal-close" onclick="closeModal('recurring-modal')">&times;</button>
+    <div class="modal-overlay" id="settle-modal">
+        <div class="modal" style="text-align: center;">
+            <h2 class="modal-title" style="margin-bottom: 24px;">Confirm Settlement</h2>
+            <p id="settle-text" style="font-size: 18px; margin-bottom: 8px;">Processing...</p>
+            <p id="settle-amount" style="font-size: 36px; font-weight: 700; color: var(--primary); margin-bottom: 32px;">₹0.00</p>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button class="btn btn-outline" onclick="closeModal('settle-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmSettlement()">Confirm Settlement</button>
             </div>
-            <form onsubmit="handleAddRecurring(event)">
-                <div class="form-group"><label class="form-label">Description</label><input type="text" class="form-input" name="description" required></div>
-                <div class="grid grid-2">
-                    <div class="form-group"><label class="form-label">Amount</label><input type="number" step="0.01" class="form-input" name="amount" required></div>
-                    <div class="form-group">
-                        <label class="form-label">Frequency</label>
-                        <select class="form-input" name="frequency" required>
-                            <option value="Monthly">Monthly</option><option value="Weekly">Weekly</option><option value="Yearly">Yearly</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Paid By</label>
-                    <select class="form-input" name="paid_by" id="paid-by-select" required></select>
-                </div>
-                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
-                    <button type="button" class="btn btn-outline" onclick="closeModal('recurring-modal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save</button>
-                </div>
-            </form>
         </div>
     </div>
 
