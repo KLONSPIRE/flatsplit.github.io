@@ -1,0 +1,8 @@
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Environment (Keep config.js, ignore nothing else for static)
