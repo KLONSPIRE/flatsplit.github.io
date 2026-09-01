@@ -1,6 +1,6 @@
 const CONFIG = {
     // PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
-    GOOGLE_APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbz9oyQOMPGznv-zx7i1OOzf5mcOG9RYeFVPhtZJWffs60k4btzeMG4F6N-l9toqOkCi0g/exec",
+    GOOGLE_APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyN6C1H1ujYzfa7IGqJ8ps3CrMAGfn78a4EsbyP6ScIVCaA9FVipZSO_U9JCO27VZYosg/exec",
     
     // App Settings
     APP_NAME: "FlatSplit",
