@@ -114,10 +114,16 @@ async function handleAddShared(e) {
     }
 }
 
-function deleteExpense(id) {
-    if(confirm("Are you sure you want to delete this expense?")) {
-        // Requires implementing deleteExpense in API.gs
-        Utils.showToast("Delete API not implemented in backend yet", "warning");
+async function deleteExpense(id) {
+    if(!confirm("Are you sure you want to delete this expense? This cannot be undone.")) return;
+    
+    try {
+        // Call the new backend endpoint
+        await API.fetch('deleteExpense', { id: id }); 
+        Utils.showToast("Expense deleted");
+        loadExpenses(); // Refresh the table
+    } catch (err) {
+        Utils.showToast(err.message || "Failed to delete", "error");
     }
 }
 
