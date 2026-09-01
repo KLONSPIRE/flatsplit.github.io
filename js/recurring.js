@@ -1,10 +1,9 @@
 // js/recurring.js
-// Note: For true recurring automation, a time-driven trigger in Apps Script is required. 
-// This UI manages the list and adding to local storage / API.
 
 document.addEventListener('DOMContentLoaded', () => {
     const user = Utils.getCurrentUser();
     if (!user) return window.location.href = './index.html';
+    
     Utils.initTheme();
     lucide.createIcons();
     
@@ -14,59 +13,93 @@ document.addEventListener('DOMContentLoaded', () => {
         <option value="${otherUser}">${CONFIG.USERS[otherUser].name}</option>
     `;
     
-    renderRecurring();
+    // Set default next date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.querySelector('input[name="next_date"]').value = tomorrow.toISOString().split('T')[0];
+
+    loadRecurring();
 });
 
-function renderRecurring() {
-    // Fetching from API requires 'getRecurringExpenses' action in Code.gs
-    // Using localStorage fallback for UI demonstration
-    let recurring = JSON.parse(localStorage.getItem('flatsplit_recurring') || '[]');
+async function loadRecurring() {
+    try {
+        const recurring = await API.fetch('getRecurringExpenses');
+        renderRecurring(recurring);
+    } catch (err) {
+        Utils.showToast("Failed to load recurring expenses", "error");
+    }
+}
+
+function renderRecurring(recurring) {
     const container = document.getElementById('recurring-list');
     
-    if (recurring.length === 0) {
-        container.innerHTML = `<div class="empty-state-container"><div class="empty-state-icon">🔄</div><div class="empty-state-title">No recurring expenses</div><p>Add rent, Wi-Fi, or subscriptions.</p></div>`;
+    if (!recurring || recurring.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state-container">
+                <div class="empty-state-icon">🔄</div>
+                <div class="empty-state-title">No recurring expenses</div>
+                <p>Add rent, Wi-Fi, or subscriptions.</p>
+            </div>`;
         return;
     }
 
-    container.innerHTML = recurring.map((r, i) => `
-        <div class="card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <div>
+    container.innerHTML = recurring.map(r => `
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 16px;">
+            <div style="flex: 1;">
                 <h3 style="margin-bottom: 4px;">${r.description}</h3>
-                <div style="color: var(--text-secondary); font-size: 14px;">${r.frequency} • Paid by ${CONFIG.USERS[r.paid_by]?.name || r.paid_by}</div>
+                <div style="color: var(--text-secondary); font-size: 14px;">
+                    ${r.frequency} • Paid by ${CONFIG.USERS[r.paid_by]?.name || r.paid_by}
+                </div>
+                <div style="color: var(--primary); font-size: 13px; margin-top: 4px;">
+                    Next: ${new Date(r.next_date).toLocaleDateString()}
+                </div>
             </div>
-            <div style="text-align: right;">
+            <div style="text-align: right; display: flex; align-items: center; gap: 16px;">
                 <div style="font-weight: 700; font-size: 18px;">${Utils.formatCurrency(r.amount)}</div>
-                <button class="btn btn-sm btn-outline" style="color:var(--danger); border-color:var(--danger); margin-top: 8px;" onclick="deleteRecurring(${i})">Delete</button>
+                <button class="btn btn-sm btn-outline" style="color:var(--danger); border-color:var(--danger);" onclick="deleteRecurring('${r.recurring_id}')">Delete</button>
             </div>
         </div>
     `).join('');
 }
 
-function handleAddRecurring(e) {
+async function handleAddRecurring(e) {
     e.preventDefault();
-    let recurring = JSON.parse(localStorage.getItem('flatsplit_recurring') || '[]');
-    
-    recurring.push({
-        id: `REC-${Date.now()}`,
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerText;
+    btn.disabled = true; btn.innerText = "Saving...";
+
+    const payload = {
         description: e.target.description.value,
         amount: parseFloat(e.target.amount.value),
         frequency: e.target.frequency.value,
-        paid_by: e.target.paid_by.value
-    });
+        paid_by: e.target.paid_by.value,
+        next_date: e.target.next_date.value,
+        split_type: 'equal' // Defaulting to equal for recurring
+    };
 
-    localStorage.setItem('flatsplit_recurring', JSON.stringify(recurring));
-    Utils.showToast("Recurring expense added");
-    closeModal('recurring-modal');
-    e.target.reset();
-    renderRecurring();
+    try {
+        await API.fetch('addRecurringExpense', payload);
+        Utils.showToast("Recurring expense added");
+        closeModal('recurring-modal');
+        e.target.reset();
+        loadRecurring();
+    } catch (err) {
+        Utils.showToast(err.message, "error");
+    } finally {
+        btn.disabled = false; btn.innerText = originalText;
+    }
 }
 
-function deleteRecurring(index) {
+async function deleteRecurring(id) {
     if(!confirm("Delete this recurring expense?")) return;
-    let recurring = JSON.parse(localStorage.getItem('flatsplit_recurring') || '[]');
-    recurring.splice(index, 1);
-    localStorage.setItem('flatsplit_recurring', JSON.stringify(recurring));
-    renderRecurring();
+    
+    try {
+        await API.fetch('deleteRecurringExpense', { id: id });
+        Utils.showToast("Deleted");
+        loadRecurring();
+    } catch (err) {
+        Utils.showToast(err.message, "error");
+    }
 }
 
 function openModal(id) { document.getElementById(id).classList.add('active'); }
